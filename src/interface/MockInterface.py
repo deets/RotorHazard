@@ -150,7 +150,7 @@ class MockInterface(BaseHardwareInterface):
     def get_intf_total_error_count(self):
         pass
 
-    def get_intf_error_report_str(self):
+    def get_intf_error_report_str(self, _showWriteFlag=False):
         return ""
 
 def get_hardware_interface(*args, **kwargs):
