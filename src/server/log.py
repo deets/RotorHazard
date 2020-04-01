@@ -1,6 +1,15 @@
 import sys
 import logging.handlers
 
+# aliasing the levels to use in the logmessages
+from logging import (
+    CRITICAL,
+    ERROR,
+    WARN,
+    INFO,
+    DEBUG,
+    )
+
 ROTORHAZARD_FORMAT = "RotorHazard: %(message)s"
 
 SOCKET_IO = None
@@ -10,16 +19,16 @@ hardware_logger = logging.getLogger("hardware")
 interface_logger = logging.getLogger("hardware")
 
 
-def server_log(message):
+def server_log(message, level=logging.INFO):
     '''Messages emitted from the server script.'''
-    server_logger.info(message)
+    server_logger.log(level, message)
     if SOCKET_IO is not None:
         SOCKET_IO.emit('hardware_log', message)
 
 
-def hardware_log(message):
+def hardware_log(message, level=logging.INFO):
     '''Message emitted from the interface class.'''
-    hardware_logger.info(message)
+    hardware_logger.log(level, message)
     if SOCKET_IO is not None:
         SOCKET_IO.emit('hardware_log', message)
 
@@ -50,6 +59,7 @@ def handler_for_config(destination):
 
 def setup_logging_from_configuration(config, socket_io):
     global SOCKET_IO
+
     SOCKET_IO = socket_io
 
     logging_config = dict(
@@ -65,5 +75,6 @@ def setup_logging_from_configuration(config, socket_io):
         logging_config["DESTINATION"]
     )
     handler.setFormatter(logging.Formatter(ROTORHAZARD_FORMAT))
-    root.setLevel(DEFAULT_LOGLEVEL)
+    level = getattr(logging, logging_config["LEVEL"])
+    root.setLevel(level)
     root.addHandler(handler)

@@ -32,7 +32,13 @@ import random
 import json
 
 # Logging
-from log import server_log, hardware_log, setup_initial_logging, setup_logging_from_configuration
+from log import (
+    server_log,
+    hardware_log,
+    setup_initial_logging,
+    setup_logging_from_configuration,
+    DEBUG,
+    )
 
 setup_initial_logging()
 
@@ -287,7 +293,7 @@ Languages = {}
 try:
     with open(LANGUAGE_FILE_NAME, 'r') as f:
         Languages = json.load(f)
-    server_log('Language file imported')
+    server_log('Language file imported', level=DEBUG)
 except IOError:
     server_log('No language file found, using defaults')
 except ValueError:
