@@ -1,5 +1,6 @@
 # coding=UTF-8
 
+from log import hardware_log
 from sensor import I2CSensor, Reading
 import bme280
 
@@ -38,7 +39,7 @@ def discover(idxOffset, config, *args, **kwargs):
         name = sensor_config.get('name', url)
         try:
             sensors.append(BME280Sensor(name, addr, i2c_helper))
-            print "BME280 found at address {0}".format(addr)
+            hardware_log("BME280 found at address {0}".format(addr))
         except IOError:
-            print "No BME280 at address {0}".format(addr)
+            hardware_log("No BME280 at address {0}".format(addr))
     return sensors

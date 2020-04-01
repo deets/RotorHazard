@@ -5,6 +5,7 @@ import io
 import gevent # For threads and timing
 from monotonic import monotonic # to capture read timing
 
+from log import hardware_log
 from Node import Node
 from BaseHardwareInterface import BaseHardwareInterface, PeakNadirHistory, discover_modules, discover_plugins
 
@@ -123,15 +124,15 @@ class RHInterface(BaseHardwareInterface):
                     node.node_nadir_rssi = self.get_value_rssi(node, READ_NODE_RSSI_NADIR)
                 node.enter_at_level = self.get_value_rssi(node, READ_ENTER_AT_LEVEL)
                 node.exit_at_level = self.get_value_rssi(node, READ_EXIT_AT_LEVEL)
-                print "Node {0}: API_level={1}, Freq={2}, EnterAt={3}, ExitAt={4}".format(node.index+1, node.api_level, node.frequency, node.enter_at_level, node.exit_at_level)
+                hardware_log("Node {0}: API_level={1}, Freq={2}, EnterAt={3}, ExitAt={4}".format(node.index+1, node.api_level, node.frequency, node.enter_at_level, node.exit_at_level))
 
                 if "RH_RECORD_NODE_{0}".format(node.index+1) in os.environ:
                     self.data_loggers.append(open("data_{0}.csv".format(node.index+1), 'w'))
-                    print("Data logging enabled for node {0}".format(node.index+1))
+                    hardware_log("Data logging enabled for node {0}".format(node.index+1))
                 else:
                     self.data_loggers.append(None)
             else:
-                print("Node {0}: API_level={1}".format(node.index+1, node.api_level))
+                hardware_log("Node {0}: API_level={1}".format(node.index+1, node.api_level))
 
         sensorKwargs = {}
         sensorKwargs.update(extKwargs)
@@ -159,7 +160,7 @@ class RHInterface(BaseHardwareInterface):
                     self.update()
                     gevent.sleep(UPDATE_SLEEP)
             except KeyboardInterrupt:
-                print("Update thread terminated by keyboard interrupt")
+                hardware_log("Update thread terminated by keyboard interrupt")
                 return
             except Exception as ex:
                 self.log('Exception in RHInterface update_loop():  ' + str(ex))

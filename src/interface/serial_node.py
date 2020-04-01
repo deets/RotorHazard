@@ -4,6 +4,7 @@ import serial # For serial comms
 import gevent
 from monotonic import monotonic
 
+from log import hardware_log
 from Node import Node
 from RHInterface import MAX_RETRY_COUNT, validate_checksum, calculate_checksum
 
@@ -19,7 +20,7 @@ class SerialNode(Node):
         if interface:
             interface.log(message)
         else:
-            print(message)
+            hardware_log(message)
 
     #
     # Serial Common Functions
@@ -114,7 +115,7 @@ def discover(idxOffset, *args, **kwargs):
     if 'SERIAL_PORTS' in config:
         for index, comm in enumerate(config['SERIAL_PORTS']):
             node = SerialNode(index+idxOffset, comm)
-            print("Serial node {0} found at port {1}".format(index+idxOffset+1, node.serial.name))
+            hardware_log("Serial node {0} found at port {1}".format(index+idxOffset+1, node.serial.name))
             nodes.append(node)
 
     gevent.sleep(BOOTLOADER_CHILL_TIME)

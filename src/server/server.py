@@ -31,6 +31,11 @@ from flask_sqlalchemy import SQLAlchemy
 import random
 import json
 
+# Logging
+from log import server_log, hardware_log, setup_initial_logging, setup_logging_from_configuration
+
+setup_initial_logging()
+
 # Events manager
 from eventmanager import Evt, EventManager
 Events = EventManager()
@@ -81,8 +86,12 @@ DB = Database.DB
 DB.init_app(APP)
 DB.app = APP
 
+
 # start SocketIO service
 SOCKET_IO = SocketIO(APP, async_mode='gevent', cors_allowed_origins=Config.GENERAL['CORS_ALLOWED_HOSTS'])
+
+setup_logging_from_configuration(Config, SOCKET_IO)
+
 
 interface_type = os.environ.get('RH_INTERFACE', 'RH')
 INTERFACE = None
@@ -90,13 +99,13 @@ try:
     interfaceModule = importlib.import_module(interface_type + 'Interface')
     INTERFACE = interfaceModule.get_hardware_interface(config=Config)
 except (ImportError, RuntimeError, IOError) as ex:
-    print 'Unable to initialize nodes via ' + interface_type + 'Interface:  ' + str(ex)
+    server_log('Unable to initialize nodes via ' + interface_type + 'Interface:  ' + str(ex))
 if not INTERFACE or not INTERFACE.nodes or len(INTERFACE.nodes) <= 0:
     if not Config.SERIAL_PORTS or len(Config.SERIAL_PORTS) <= 0:
         interfaceModule = importlib.import_module('MockInterface')
         INTERFACE = interfaceModule.get_hardware_interface(config=Config)
     else:
-        print 'Unable to initialize specified serial node(s): {0}'.format(Config.SERIAL_PORTS)
+        server_log('Unable to initialize specified serial node(s): {0}'.format(Config.SERIAL_PORTS))
         sys.exit()
 
 RACE = get_race_state() # For storing race management variables
@@ -108,7 +117,7 @@ def diff_milliseconds(t2, t1):
 
 EPOCH_START = datetime(1970, 1, 1)
 PROGRAM_START_TIMESTAMP = diff_milliseconds(datetime.now(), EPOCH_START)
-print 'Program started at {0:13f}'.format(PROGRAM_START_TIMESTAMP)
+server_log('Program started at {0:13f}'.format(PROGRAM_START_TIMESTAMP))
 PROGRAM_START = monotonic()
 PROGRAM_START_MILLIS_OFFSET = 1000.0*PROGRAM_START - PROGRAM_START_TIMESTAMP
 
@@ -160,15 +169,15 @@ class Slave:
     def reconnect(self):
         if self.lastContact == -1:
             startConnectTime = monotonic()
-            print "Slave {0}: connecting to {1}...".format(self.id+1, self.address)
+            server_log("Slave {0}: connecting to {1}...".format(self.id+1, self.address))
             while monotonic() < startConnectTime + self.info['timeout']:
                 try:
                     self.sio.connect(self.address)
-                    print "Slave {0}: connected to {1}".format(self.id+1, self.address)
+                    server_log("Slave {0}: connected to {1}".format(self.id+1, self.address))
                     return True
                 except socketio.exceptions.ConnectionError:
                     gevent.sleep(0.1)
-            print "Slave {0}: connection to {1} failed!".format(self.id+1, self.address)
+            server_log("Slave {0}: connection to {1} failed!".format(self.id+1, self.address))
             return False
 
     def emit(self, event, data = None):
@@ -264,7 +273,7 @@ for index, slave_info in enumerate(Config.GENERAL['SLAVES']):
     if 'mode' in slave_info and slave_info['mode'] == Slave.MIRROR_MODE:
         hasMirrors = True
     elif hasMirrors:
-        print '** Mirror slaves must be last - ignoring remaining slave config **'
+        server_log('** Mirror slaves must be last - ignoring remaining slave config **')
         break
     slave = Slave(index, slave_info)
     CLUSTER.addSlave(slave)
@@ -278,11 +287,11 @@ Languages = {}
 try:
     with open(LANGUAGE_FILE_NAME, 'r') as f:
         Languages = json.load(f)
-    print 'Language file imported'
+    server_log('Language file imported')
 except IOError:
-    print 'No language file found, using defaults'
+    server_log('No language file found, using defaults')
 except ValueError:
-    print 'Language file invalid, using defaults'
+    server_log('Language file invalid, using defaults')
 
 def __(text, domain=''):
     # return translated string
@@ -3653,7 +3662,11 @@ def heartbeat_thread_function():
             if RACE.scheduled:
                 if time_now > RACE.scheduled_time:
                     on_stage_race()
+<<<<<<< HEAD
                     RACE.scheduled = False
+=======
+                    RACE_SCHEDULED = False
+>>>>>>> Convert print statements to basic logging setup
 
             # if any comm errors then log them (at defined intervals; faster if debug mode)
             if time_now > heartbeat_thread_function.last_error_rep_time + \
@@ -3666,7 +3679,7 @@ def heartbeat_thread_function():
             gevent.sleep(0.500/HEARTBEAT_DATA_RATE_FACTOR)
 
         except KeyboardInterrupt:
-            print("Heartbeat thread terminated by keyboard interrupt")
+            server_log("Heartbeat thread terminated by keyboard interrupt")
             return
         except Exception as ex:
             server_log('Exception in Heartbeat thread loop:  ' + str(ex))
@@ -3938,16 +3951,6 @@ def node_crossing_callback(node):
                         })
                 else:
                     node.show_crossing_flag = True
-
-def server_log(message):
-    '''Messages emitted from the server script.'''
-    print message
-    SOCKET_IO.emit('hardware_log', message)
-
-def hardware_log_callback(message):
-    '''Message emitted from the interface class.'''
-    print message
-    SOCKET_IO.emit('hardware_log', message)
 
 def default_frequencies():
     '''Set node frequencies, R1367 for 4, IMD6C+ for 5+.'''
@@ -4337,14 +4340,14 @@ def init_LED_effects():
 INTERFACE.pass_record_callback = pass_record_callback
 INTERFACE.new_enter_or_exit_at_callback = new_enter_or_exit_at_callback
 INTERFACE.node_crossing_callback = node_crossing_callback
-INTERFACE.hardware_log_callback = hardware_log_callback
+INTERFACE.hardware_log_callback = hardware_log
 
 # Save number of nodes found
 RACE.num_nodes = len(INTERFACE.nodes)
 if RACE.num_nodes == 0:
-    print '*** WARNING: NO RECEIVER NODES FOUND ***'
+    server_log('*** WARNING: NO RECEIVER NODES FOUND ***')
 else:
-    print 'Number of nodes found: {0}'.format(RACE.num_nodes)
+    server_log('Number of nodes found: {0}'.format(RACE.num_nodes))
 
 # Delay to get I2C addresses through interface class initialization
 gevent.sleep(0.500)
@@ -4464,9 +4467,9 @@ if Config.LED['LED_COUNT'] > 0:
             strip = ledModule.get_pixel_interface(config=Config.LED, brightness=led_brightness)
         except ImportError:
             ledModule = None
-            print 'LED: disabled (no modules available)'
+            server_log('LED: disabled (no modules available)')
 else:
-    print 'LED: disabled (configured LED_COUNT is <= 0)'
+    server_log('LED: disabled (configured LED_COUNT is <= 0)')
 if strip:
     # Initialize the library (must be called once before other functions).
     strip.begin()
@@ -4477,7 +4480,7 @@ if strip:
             lib = importlib.import_module(handlerFile)
             lib.registerEffects(led_manager)
         except ImportError:
-            print 'Handler {0} not imported (may require additional dependencies)'.format(handlerFile)
+            server_log('Handler {0} not imported (may require additional dependencies)'.format(handlerFile))
     init_LED_effects()
 else:
     led_manager = NoLEDManager()
@@ -4488,7 +4491,7 @@ def start(port_val = Config.GENERAL['HTTP_PORT']):
 
     APP.config['SECRET_KEY'] = getOption("secret_key")
 
-    print "Running http server at port " + str(port_val)
+    server_log("Running http server at port " + str(port_val))
 
     Events.trigger(Evt.STARTUP)
 
@@ -4496,12 +4499,12 @@ def start(port_val = Config.GENERAL['HTTP_PORT']):
         # the following fn does not return until the server is shutting down
         SOCKET_IO.run(APP, host='0.0.0.0', port=port_val, debug=True, use_reloader=False)
     except KeyboardInterrupt:
-        print "Server terminated by keyboard interrupt"
+        server_log("Server terminated by keyboard interrupt")
     except Exception as ex:
-        print "Server exception:  " + str(ex)
+        hardware_log("Server exception:  " + str(ex))
 
     Events.trigger(Evt.SHUTDOWN)
-    print INTERFACE.get_intf_error_report_str(True)
+    server_log(INTERFACE.get_intf_error_report_str(True))
 
 # Start HTTP server
 if __name__ == '__main__':

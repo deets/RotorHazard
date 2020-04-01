@@ -1,5 +1,5 @@
 '''RotorHazard I2C interface layer.'''
-
+from log import hardware_log
 import gevent
 from gevent.lock import BoundedSemaphore # To limit i2c calls
 from monotonic import monotonic
@@ -101,11 +101,11 @@ def discover(idxOffset, *args, **kwargs):
     for index, addr in enumerate(i2c_addrs):
         try:
             i2c_helper.i2c.read_i2c_block_data(addr, READ_ADDRESS, 1)
-            print("I2C node {0} found at address {1}".format(index+idxOffset+1, addr))
+            hardware_log("I2C node {0} found at address {1}".format(index+idxOffset+1, addr))
             node = I2CNode(index+idxOffset, addr, i2c_helper) # New node instance
             nodes.append(node) # Add new node to RHInterface
         except IOError as err:
-            print("No I2C node at address {0}".format(addr))
+            hardware_log("No I2C node at address {0}".format(addr))
         i2c_helper.i2c_end()
         i2c_helper.i2c_sleep()
     return nodes

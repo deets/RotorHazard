@@ -6,6 +6,7 @@ import random
 from gevent.lock import BoundedSemaphore # To limit i2c calls
 from monotonic import monotonic # to capture read timing
 
+from log import hardware_log
 from Node import Node
 from BaseHardwareInterface import BaseHardwareInterface, PeakNadirHistory
 
@@ -34,7 +35,7 @@ class MockInterface(BaseHardwareInterface):
             self.nodes.append(node) # Add new node to RHInterface
             try:
                 f = open("mock_data_{0}.csv".format(index+1))
-                print "Loaded mock_data_{0}.csv".format(index+1)
+                hardware_log("Loaded mock_data_{0}.csv".format(index+1))
             except IOError:
                 f = None
             self.data.append(f)
@@ -55,7 +56,7 @@ class MockInterface(BaseHardwareInterface):
                 self.update()
                 gevent.sleep(UPDATE_SLEEP)
         except KeyboardInterrupt:
-            print "Update thread terminated by keyboard interrupt"
+            hardware_log("Update thread terminated by keyboard interrupt")
 
     def update(self):
         upd_list = []  # list of nodes with new laps (node, new_lap_id, lap_timestamp)
@@ -154,5 +155,5 @@ class MockInterface(BaseHardwareInterface):
 
 def get_hardware_interface(*args, **kwargs):
     '''Returns the interface object.'''
-    print('Using mock hardware interface')
+    hardware_log('Using mock hardware interface')
     return MockInterface(*args, **kwargs)
