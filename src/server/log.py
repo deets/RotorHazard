@@ -14,9 +14,27 @@ ROTORHAZARD_FORMAT = "RotorHazard: %(message)s"
 
 SOCKET_IO = None
 
+root = logging.getLogger()
 server_logger = logging.getLogger("server")
 hardware_logger = logging.getLogger("hardware")
 interface_logger = logging.getLogger("hardware")
+
+
+class BufferingHandler(logging.Handler):
+
+    def __init__(self, *a, **kw):
+        super(BufferingHandler, self).__init__(*a, **kw)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+BUFFERING_HANDLER = BufferingHandler()
+
+
+def get_all_log_records():
+    return BUFFERING_HANDLER.records
 
 
 def server_log(message, level=logging.INFO):
@@ -39,6 +57,7 @@ def setup_initial_logging():
         level=logging.INFO,
         format=ROTORHAZARD_FORMAT,
     )
+    root.addHandler(BUFFERING_HANDLER)
     # some 3rd party packages use logging. Good for them. Now be quiet.
     logging.getLogger("socketio.server").setLevel(logging.WARN)
     logging.getLogger("engineio.server").setLevel(logging.WARN)
@@ -67,7 +86,6 @@ def setup_logging_from_configuration(config, socket_io):
         DESTINATION="STDERR",
     )
     logging_config.update(config)
-    root = logging.getLogger()
     # empty out the already configured handler
     # from basicConfig
     root.handlers[:] = []
@@ -78,3 +96,4 @@ def setup_logging_from_configuration(config, socket_io):
     level = getattr(logging, logging_config["LEVEL"])
     root.setLevel(level)
     root.addHandler(handler)
+    root.addHandler(BUFFERING_HANDLER)
