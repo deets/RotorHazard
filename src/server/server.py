@@ -82,15 +82,15 @@ import Database
 BASEDIR = os.getcwd()
 APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASEDIR, DB_FILE_NAME)
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 DB = Database.DB
 DB.init_app(APP)
 DB.app = APP
 
-
 # start SocketIO service
 SOCKET_IO = SocketIO(APP, async_mode='gevent', cors_allowed_origins=Config.GENERAL['CORS_ALLOWED_HOSTS'])
 
-setup_logging_from_configuration(Config, SOCKET_IO)
+setup_logging_from_configuration(Config.LOGGING, SOCKET_IO)
 
 
 interface_type = os.environ.get('RH_INTERFACE', 'RH')
@@ -3662,11 +3662,7 @@ def heartbeat_thread_function():
             if RACE.scheduled:
                 if time_now > RACE.scheduled_time:
                     on_stage_race()
-<<<<<<< HEAD
                     RACE.scheduled = False
-=======
-                    RACE_SCHEDULED = False
->>>>>>> Convert print statements to basic logging setup
 
             # if any comm errors then log them (at defined intervals; faster if debug mode)
             if time_now > heartbeat_thread_function.last_error_rep_time + \

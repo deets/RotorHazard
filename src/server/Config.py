@@ -34,11 +34,15 @@ GENERAL['SLAVE_TIMEOUT'] = 300 # seconds
 GENERAL['DEBUG'] = False
 GENERAL['CORS_ALLOWED_HOSTS'] = '*'
 
+LOGGING = {}
+
 # override defaults above with config from file
 try:
 	with open(CONFIG_FILE_NAME, 'r') as f:
 		ExternalConfig = json.load(f)
 	GENERAL.update(ExternalConfig['GENERAL'])
+	LOGGING.update(ExternalConfig['LOGGING'])
+
 
 	if 'LED' in ExternalConfig:
 		LED.update(ExternalConfig['LED'])
