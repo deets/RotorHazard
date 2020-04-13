@@ -4,6 +4,9 @@ Global configurations
 
 import random
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 CONFIG_FILE_NAME = 'config.json'
 
@@ -11,6 +14,7 @@ GENERAL = {}
 SENSORS = {}
 LED = {}
 SERIAL_PORTS = []
+PROPELLER = {}
 
 # LED strip configuration:
 LED['LED_COUNT']      = 0       # Number of LED pixels.
@@ -35,20 +39,18 @@ GENERAL['DEBUG'] = False
 GENERAL['CORS_ALLOWED_HOSTS'] = '*'
 
 LOGGING = {}
-
 # override defaults above with config from file
 try:
-	with open(CONFIG_FILE_NAME, 'r') as f:
-		ExternalConfig = json.load(f)
-	GENERAL.update(ExternalConfig['GENERAL'])
-	LOGGING.update(ExternalConfig['LOGGING'])
+    with open(CONFIG_FILE_NAME, 'r') as f:
+        ExternalConfig = json.load(f)
+    GENERAL.update(ExternalConfig['GENERAL'])
+    LOGGING.update(ExternalConfig['LOGGING'])
 
+    if 'LED' in ExternalConfig:
+        LED.update(ExternalConfig['LED'])
 
-	if 'LED' in ExternalConfig:
-		LED.update(ExternalConfig['LED'])
-
-	'''
-	# Subtree updating
+    '''
+    # Subtree updating
     try:
         bitmaptree = LED['BITMAPS']
         LED'].update(ExternalLED'])
@@ -60,16 +62,20 @@ try:
         else:
             print "No 'LED' entry found in configuration file "
     '''
+    for name in ('SENSORS', 'SERIAL_PORTS', 'PROPELLER'):
+        if name in ExternalConfig:
+            config_obj = globals()[name]
+            part = ExternalConfig[name]
+            if isinstance(config_obj, list):
+                config_obj.extend(part)
+            else:
+                config_obj.update(part)
 
-	if 'SENSORS' in ExternalConfig:
-		SENSORS.update(ExternalConfig['SENSORS'])
-	if 'SERIAL_PORTS' in ExternalConfig:
-		SERIAL_PORTS.extend(ExternalConfig['SERIAL_PORTS'])
-	GENERAL['configFile'] = 1
-	print 'Configuration file imported'
+    GENERAL['configFile'] = 1
+    print 'Configuration file imported'
 except IOError:
-	GENERAL['configFile'] = 0
-	print 'No configuration file found, using defaults'
+    GENERAL['configFile'] = 0
+    print 'No configuration file found, using defaults'
 except ValueError as ex:
-	GENERAL['configFile'] = -1
-	print 'Configuration file invalid, using defaults; error is: ' + str(ex)
+    GENERAL['configFile'] = -1
+    logger.exception("Loading config.json failed")
